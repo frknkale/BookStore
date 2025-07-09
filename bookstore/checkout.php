@@ -37,16 +37,18 @@ if(isset($_SESSION['id'])){
 	$result = $conn->query($sql);
 	while($row = $result->fetch_assoc()){
 		$sql = "INSERT INTO `Order`(CustomerID, BookID, DatePurchase, Quantity, TotalPrice, Status) 
-		VALUES(".$row['CustomerID'].", '".$row['BookID']
-		."', CURRENT_TIME, ".$row['Quantity'].", ".$row['TotalPrice'].", 'N')";
-		$conn->query($sql);
+		VALUES(".$row['CustomerID'].", '".$row['BookID']."', CURRENT_TIME, ".$row['Quantity'].", ".$row['TotalPrice'].", 'N')";
+		if ($conn->query($sql) === FALSE) {
+		    echo "Error: " . $conn->error;
+		}
 	}
+
 	$sql = "DELETE FROM Cart";
 	$conn->query($sql);
 
 	$sql = "SELECT Customer.CustomerName, Customer.CustomerIC, Customer.CustomerGender, Customer.CustomerAddress, Customer.CustomerEmail, Customer.CustomerPhone, Book.BookTitle, Book.Price, Book.Image, `Order`.`DatePurchase`, `Order`.`Quantity`, `Order`.`TotalPrice`
 		FROM Customer, Book, `Order`
-		WHERE `Order`.`CustomerID` = Customer.CustomerID AND `Order`.`BookID` = Book.BookID AND `Order`.`Status` = 'N' AND `Order`.`CustomerID` = ".$cID."";
+		WHERE `Order`.`CustomerID` = Customer.CustomerID AND `Order`.`BookID` = Book.BookID AND `Order`.`CustomerID` = ".$cID."";
 	$result = $conn->query($sql);
 	echo '<div class="container">';
 	echo '<blockquote>';
@@ -69,18 +71,18 @@ if(isset($_SESSION['id'])){
 
 	$sql = "SELECT Customer.CustomerName, Customer.CustomerIC, Customer.CustomerGender, Customer.CustomerAddress, Customer.CustomerEmail, Customer.CustomerPhone, Book.BookTitle, Book.Price, Book.Image, `Order`.`DatePurchase`, `Order`.`Quantity`, `Order`.`TotalPrice`
 		FROM Customer, Book, `Order`
-		WHERE `Order`.`CustomerID` = Customer.CustomerID AND `Order`.`BookID` = Book.BookID AND `Order`.`Status` = 'N' AND `Order`.`CustomerID` = ".$cID."";
+		WHERE `Order`.`CustomerID` = Customer.CustomerID AND `Order`.`BookID` = Book.BookID AND `Order`.`CustomerID` = ".$cID."";
 	$result = $conn->query($sql);
 	$total = 0;
 	while($row = $result->fetch_assoc()){
 		echo "<tr><td style='border-top: 2px solid #ccc;'>";
-		echo '<img src="'.$row["Image"].'"width="20%"></td><td style="border-top: 2px solid #ccc;">';
+		echo '<img src="'.$row["Image"].'" width="20%"></td><td style="border-top: 2px solid #ccc;">';
     	echo $row['BookTitle']."<br>RM".$row['Price']."<br>";
     	echo "Quantity: ".$row['Quantity']."<br>";
     	echo "</td></tr>";
     	$total += $row['TotalPrice'];
 	}
-	echo "<tr><td style='background-color: #ccc;'></td><td style='text-align: right;background-color: #ccc;''>Total Price: <b>RM".$total."</b></td></tr>";
+	echo "<tr><td style='background-color: #ccc;'></td><td style='text-align: right;background-color: #ccc;'>Total Price: <b>RM".$total."</b></td></tr>";
 	echo "</table>";
 	echo "</div>";
 
@@ -96,98 +98,69 @@ if(isset($_POST['submitButton'])){
 	if (empty($_POST["name"])) {
 		$nameErr = "Please enter your name";
 	}else{
-		if (!preg_match("/^[a-zA-Z ]*$/", $name)){
-			$nameErr = "Only letters and white space allowed";
-			$name = "";
+		$name = $_POST['name'];
+		if (empty($_POST["ic"])){
+			$icErr = "Please enter your IC number";
 		}else{
-			$name = $_POST['name'];
-			if (empty($_POST["ic"])){
-				$icErr = "Please enter your IC number";
+			$ic = $_POST['ic'];
+			if (empty($_POST["email"])){
+				$emailErr = "Please enter your email address";
 			}else{
-				if(!preg_match("/^[0-9 -]*$/", $ic)){
-					$icErr = "Please enter a valid IC number";
-					$ic = "";
+				$email = $_POST['email'];
+				if (empty($_POST["contact"])){
+					$contactErr = "Please enter your phone number";
 				}else{
-					$ic = $_POST['ic'];
-					if (empty($_POST["email"])){
-						$emailErr = "Please enter your email address";
+					$contact = $_POST['contact'];
+					if (empty($_POST["gender"])){
+						$genderErr = "Gender is required!";
 					}else{
-						if (filter_var($email, FILTER_VALIDATE_EMAIL)){
-							$emailErr = "Invalid email format";
-							$email = "";
+						$gender = $_POST['gender'];
+						if (empty($_POST["address"])){
+							$addressErr = "Please enter your address";
 						}else{
-							$email = $_POST['email'];
-							if (empty($_POST["contact"])){
-								$contactErr = "Please enter your phone number";
-							}else{
-								if(!preg_match("/^[0-9 -]*$/", $contact)){
-									$contactErr = "Please enter a valid phone number";
-									$contact = "";
-								}else{
-									$contact = $_POST['contact'];
-									if (empty($_POST["gender"])){
-										$genderErr = "* Gender is required!";
-										$gender = "";
-									}else{
-										$gender = $_POST['gender'];
-										if (empty($_POST["address"])){
-											$addressErr = "Please enter your address";
-											$address = "";
-										}else{
-											$address = $_POST['address'];
+							$address = $_POST['address'];
 
-											$servername = $mysql_host;
-											$username = $mysql_username;
-											$password = $mysql_password;
+							$servername = $mysql_host;
+							$username = $mysql_username;
+							$password = $mysql_password;
 
-											$conn = new mysqli($servername, $username, $password); 
+							$conn = new mysqli($servername, $username, $password); 
 
-											if ($conn->connect_error) {
-											    die("Connection failed: " . $conn->connect_error);
-											} 
+							if ($conn->connect_error) {
+							    die("Connection failed: " . $conn->connect_error);
+							} 
 
-											$sql = "USE BookStore";
-											$conn->query($sql);
+							$sql = "USE BookStore";
+							$conn->query($sql);
 
-											$sql = "INSERT INTO Customer(CustomerName, CustomerPhone, CustomerIC, CustomerEmail, CustomerAddress, CustomerGender) 
-											VALUES('".$name."', '".$contact."', '".$ic."', '".$email."', '".$address."', '".$gender."')";
-											$conn->query($sql);
- 
-											$sql = "SELECT CustomerID from Customer WHERE CustomerName = '".$name."' AND CustomerIC = '".$ic."'";
-											$result = $conn->query($sql);
-											while($row = $result->fetch_assoc()){
-												$cID = $row['CustomerID'];
-											}
+							$sql = "INSERT INTO Customer(CustomerName, CustomerPhone, CustomerIC, CustomerEmail, CustomerAddress, CustomerGender) 
+							VALUES('".$name."', '".$contact."', '".$ic."', '".$email."', '".$address."', '".$gender."')";
+							$conn->query($sql);
 
-											$sql = "UPDATE Cart SET CustomerID = ".$cID." WHERE 1";
-											$conn->query($sql);
-
-											$sql = "SELECT * FROM Cart";
-											$result = $conn->query($sql);
-											while($row = $result->fetch_assoc()){
-												$sql = "INSERT INTO `Order`(CustomerID, BookID, DatePurchase, Quantity, TotalPrice, Status) 
-												VALUES(".$row['CustomerID'].", '".$row['BookID']
-												."', CURRENT_TIME, ".$row['Quantity'].", ".$row['TotalPrice'].", 'N')";
-												$conn->query($sql);
-											}
-											$sql = "DELETE FROM Cart";
-											$conn->query($sql);
-										}
-									}
-								}
+							$sql = "SELECT CustomerID from Customer WHERE CustomerName = '".$name."' AND CustomerIC = '".$ic."'";
+							$result = $conn->query($sql);
+							while($row = $result->fetch_assoc()){
+								$cID = $row['CustomerID'];
 							}
+
+							$sql = "UPDATE Cart SET CustomerID = ".$cID." WHERE 1";
+							$conn->query($sql);
+
+							$sql = "SELECT * FROM Cart";
+							$result = $conn->query($sql);
+							while($row = $result->fetch_assoc()){
+								$sql = "INSERT INTO `Order`(CustomerID, BookID, DatePurchase, Quantity, TotalPrice, Status) 
+								VALUES(".$row['CustomerID'].", '".$row['BookID']."', CURRENT_TIME, ".$row['Quantity'].", ".$row['TotalPrice'].", 'N')";
+								$conn->query($sql);
+							}
+							$sql = "DELETE FROM Cart";
+							$conn->query($sql);
 						}
 					}
 				}
 			}
 		}
 	}
-}
-function test_input($data){
-	$data = trim($data);
-	$data = stripcslashes($data);
-	$data = htmlspecialchars($data);
-	return $data;
 }
 ?>
 <style> 
@@ -225,137 +198,56 @@ input[type=text] {
     border: 2px solid #ccc;
     transition: 0.5s;
     outline: none;
+    font-size: 1.2em;
+	width: 60%;
 }
 input[type=text]:focus {
-    border: 2px solid rgb(0,51,102);
+    border: 2px solid #6699ff;
 }
-textarea {
-	outline: none;
-	border: 2px solid #ccc;
+input[type=button] {
+	width: 100%;
 }
-textarea:focus {
-	border: 2px solid rgb(0,51,102);
+button {
+	width: 100%;
 }
-.button{
-    background-color: rgb(0,51,102);
-    border: none;
-    border-radius: 20px;
-    text-align: center;
-    transition-duration: 0.5s; 
-    padding: 8px 30px;
-    cursor: pointer;
+button:hover{
+	color: #fff;
+	background-color: rgb(0,51,102);
+	border: none;
+	border-radius: 8px;
+}
+input[type=button] {
+	background-color: rgb(0,51,102);
     color: #fff;
+    border-radius: 8px;
 }
-.button:hover {
-    background-color: rgb(102,255,255);
-    color: #000;
+input[type=button]:hover{
+	background-color: rgb(0,102,204);
 }
-table {
-    border-collapse: collapse;
-    width: 60%;
-    float: right;
+input[type="radio"] {
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+}
+input[type="radio"]:focus {
+	outline: none;
+}
+h2 {
+	text-align: center;
+	color: rgb(0,51,102);
+}
+blockquote {
+	margin: 2%;
+	padding: 3%;
+}
+table, th, td {
+	border: 1px solid black;
+	border-collapse: collapse;
 }
 th, td {
-    text-align: left;
-    padding: 8px;
-}
-tr{background-color: #fff;}
-
-th {
-    background-color: rgb(0,51,102);
-    color: white;
-}
-.container {
-	width: 50%;
-    border-radius: 5px;
-    background-color: #f2f2f2;
-    padding: 20px;
-    margin: 0 auto;
+	padding: 10px;
+	text-align: left;
 }
 </style>
-<blockquote>
-<?php
-if(!isset($_SESSION['id'])){
-	echo "<form method='post'  action=''>";
-
-	echo 'Name:<br><input type="text" name="name" placeholder="Full Name">';
-	echo '<span class="error" style="color: red; font-size: 0.8em;"><?php echo $nameErr;?></span><br><br>';
-
-	echo 'IC Number:<br><input type="text" name="ic" placeholder="xxxxxx-xx-xxxx">';
-	echo '<span class="error" style="color: red; font-size: 0.8em;"><?php echo $icErr;?></span><br><br>';
-
-	echo 'E-mail:<br><input type="text" name="email" placeholder="example@email.com">';
-	echo '<span class="error" style="color: red; font-size: 0.8em;"><?php echo $emailErr;?></span><br><br>';
-
-	echo 'Mobile Number:<br><input type="text" name="contact" placeholder="012-3456789">';
-	echo '<span class="error" style="color: red; font-size: 0.8em;"><?php echo $contactErr;?></span><br><br>';
-
-	echo '<label>Gender:</label><br>';
-	echo '<input type="radio" name="gender" if (isset($gender) && $gender == "Male") echo "checked"; value="Male">Male';
-	echo '<input type="radio" name="gender" if (isset($gender) && $gender == "Female") echo "checked"; value="Female">Female';
-	echo '<span class="error" style="color: red; font-size: 0.8em;"><?php echo $genderErr;?></span><br><br>';
-
-	echo '<label>Address:</label><br>';
-	   echo '<textarea name="address" cols="30" rows="5" placeholder="Address"></textarea>';
-	   echo '<span class="error" style="color: red; font-size: 0.8em;"><?php echo $addressErr;?></span><br><br>';
-?>
-<input class="button" type="button" name="cancel" value="Cancel" onClick="window.location='index.php';" />
-<?php
-	echo '<input class="button" type="submit" name="submitButton" value="CHECKOUT">';
-	echo '</form><br><br>';
-}
-
-if(isset($_POST['submitButton'])){
-	$servername = $mysql_host;
-	$username = $mysql_username;
-	$password = $mysql_password;
-
-	$conn = new mysqli($servername, $username, $password); 
-
-	if ($conn->connect_error) {
-	    die("Connection failed: " . $conn->connect_error);
-	} 
-
-	$sql = "USE BookStore";
-	$conn->query($sql);
-
-	$sql = "SELECT Customer.CustomerName, Customer.CustomerIC, Customer.CustomerGender, Customer.CustomerAddress, Customer.CustomerEmail, Customer.CustomerPhone, Book.BookTitle, Book.Price, Book.Image, `Order`.`DatePurchase`, `Order`.`Quantity`, `Order`.`TotalPrice`
-		FROM Customer, Book, `Order`
-		WHERE `Order`.`CustomerID` = Customer.CustomerID AND `Order`.`BookID` = Book.BookID AND `Order`.`Status` = 'N' AND `Order`.`CustomerID` = ".$cID."";
-	$result = $conn->query($sql);
-
-	echo '<table style="width: 40%">';
-	echo "<tr><th>Order Summary</th>";
-	echo "<th></th></tr>";
-	$row = $result->fetch_assoc();
-	echo "<tr><td>Name: </td><td>".$row['CustomerName']."</td></tr>";
-	echo "<tr><td>No.Number: </td><td>".$row['CustomerIC']."</td></tr>";
-	echo "<tr><td>E-mail: </td><td>".$row['CustomerEmail']."</td></tr>";
-	echo "<tr><td>Mobile Number: </td><td>".$row['CustomerPhone']."</td></tr>";
-	echo "<tr><td>Gender: </td><td>".$row['CustomerGender']."</td></tr>";
-	echo "<tr><td>Address: </td><td>".$row['CustomerAddress']."</td></tr>";
-	echo "<tr><td>Date: </td><td>".$row['DatePurchase']."</td></tr>";
-
-	$sql = "SELECT Customer.CustomerName, Customer.CustomerIC, Customer.CustomerGender, Customer.CustomerAddress, Customer.CustomerEmail, Customer.CustomerPhone, Book.BookTitle, Book.Price, Book.Image, `Order`.`DatePurchase`, `Order`.`Quantity`, `Order`.`TotalPrice`
-		FROM Customer, Book, `Order`
-		WHERE `Order`.`CustomerID` = Customer.CustomerID AND `Order`.`BookID` = Book.BookID AND `Order`.`Status` = 'N' AND `Order`.`CustomerID` = ".$cID."";
-	$result = $conn->query($sql);
-	$total = 0;
-	while($row = $result->fetch_assoc()){
-		echo "<tr><td style='border-top: 2px solid #ccc;'>";
-		echo '<img src="'.$row["Image"].'"width="20%"></td><td style="border-top: 2px solid #ccc;">';
-    	echo $row['BookTitle']."<br>RM".$row['Price']."<br>";
-    	echo "Quantity: ".$row['Quantity']."<br>";
-    	echo "</td></tr>";
-    	$total += $row['TotalPrice'];
-	}
-	echo "<tr><td style='background-color: #ccc;'></td><td style='text-align: right;background-color: #ccc;'>Total Price: <b>RM".$total."</b></td></tr>";
-	echo "</table>";
-
-	$sql = "UPDATE `order` SET Status = 'y' WHERE CustomerID = ".$cID."";
-	$conn->query($sql);
-}
-?>
-</blockquote>
 </body>
 </html>
