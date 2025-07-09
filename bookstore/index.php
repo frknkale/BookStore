@@ -17,7 +17,7 @@ session_start();
 		    die("Connection failed: " . $conn->connect_error);
 		} 
 
-		$sql = "USE bookstore";
+		$sql = "USE BookStore";
 		$conn->query($sql);
 
 		$sql = "SELECT * FROM book WHERE BookID = '".$_POST['ac']."'";
@@ -44,7 +44,7 @@ session_start();
 		    die("Connection failed: " . $conn->connect_error);
 		} 
 
-		$sql = "USE bookstore";
+		$sql = "USE BookStore";
 		$conn->query($sql);
 
 		$sql = "DELETE FROM cart";
@@ -61,7 +61,7 @@ session_start();
 	    die("Connection failed: " . $conn->connect_error);
 	} 
 
-	$sql = "USE bookstore";
+	$sql = "USE BookStore";
 	$conn->query($sql);	
 
 	$sql = "SELECT * FROM book";
