@@ -26,9 +26,9 @@ if ($conn->connect_error) {
 $sql = "USE BookStore";
 $conn->query($sql);
 
-$sql = "SELECT users.UserName, users.Password, customer.CustomerName, customer.CustomerIC, customer.CustomerEmail, customer.CustomerPhone, customer.CustomerGender, customer.CustomerAddress
-	FROM users, customer
-	WHERE users.UserID = customer.UserID AND users.UserID = ".$_SESSION['id']."";
+$sql = "SELECT Users.UserName, Users.Password, Customer.CustomerName, Customer.CustomerIC, Customer.CustomerEmail, Customer.CustomerPhone, Customer.CustomerGender, Customer.CustomerAddress
+	FROM Users, Customer
+	WHERE Users.UserID = Customer.UserID AND Users.UserID = ".$_SESSION['id']."";
 $result = $conn->query($sql);
 while($row = $result->fetch_assoc()){
 	$oUserName = $row['UserName'];
@@ -115,11 +115,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 													$sql = "USE BookStore";
 													$conn->query($sql);
 
-													$sql = "UPDATE users SET UserName = '".$uname."', Password = '".$upassword."' WHERE UserID = "
+													$sql = "UPDATE Users SET UserName = '".$uname."', Password = '".$upassword."' WHERE UserID = "
 													.$_SESSION['id']."";
 													$conn->query($sql);
 
-													$sql = "UPDATE customer SET CustomerName = '".$name."', CustomerPhone = '".$contact."', 
+													$sql = "UPDATE Customer SET CustomerName = '".$name."', CustomerPhone = '".$contact."', 
 													CustomerIC = '".$ic."', CustomerEmail = '".$email."', CustomerAddress = '".$address."', 
 													CustomerGender = '".$gender."'";
 													$conn->query($sql);

@@ -82,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 													$sql = "INSERT INTO users(UserName, Password) VALUES('".$uname."', '".$upassword."')";
 													$conn->query($sql);
 
-													$sql = "SELECT UserID FROM users WHERE UserName = '".$uname."'";
+													$sql = "SELECT UserID FROM Users WHERE UserName = '".$uname."'";
 													$result = $conn->query($sql);
 													while($row = $result->fetch_assoc()){
 														$id = $row['UserID'];

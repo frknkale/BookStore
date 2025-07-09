@@ -29,7 +29,7 @@ session_start();
 			$price = $row['Price'];
 		}
 
-		$sql = "INSERT INTO cart(BookID, Quantity, Price, TotalPrice) VALUES('".$bookID."', ".$quantity.", ".$price.", Price * Quantity)";
+		$sql = "INSERT INTO Cart(BookID, Quantity, Price, TotalPrice) VALUES('".$bookID."', ".$quantity.", ".$price.", Price * Quantity)";
 		$conn->query($sql);
 	}
 
@@ -47,7 +47,7 @@ session_start();
 		$sql = "USE BookStore";
 		$conn->query($sql);
 
-		$sql = "DELETE FROM cart";
+		$sql = "DELETE FROM Cart";
 		$conn->query($sql);
 	}
 
@@ -106,7 +106,7 @@ echo '<blockquote>';
     echo "</tr>";
     echo "</table>";
 
-	$sql = "SELECT book.BookTitle, book.Image, cart.Price, cart.Quantity, cart.TotalPrice FROM Book,cart WHERE book.BookID = cart.BookID;";
+	$sql = "SELECT Book.BookTitle, Book.Image, Cart.Price, Cart.Quantity, Cart.TotalPrice FROM Book,Cart WHERE Book.BookID = Cart.BookID;";
 	$result = $conn->query($sql);
 
     echo "<table style='width:20%; float:right;'>";
