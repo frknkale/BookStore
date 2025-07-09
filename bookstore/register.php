@@ -79,7 +79,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 													$sql = "USE BookStore";
 													$conn->query($sql);
 
-													$sql = "INSERT INTO users(UserName, Password) VALUES('".$uname."', '".$upassword."')";
+													$sql = "INSERT INTO Users(UserName, Password) VALUES('".$uname."', '".$upassword."')";
 													$conn->query($sql);
 
 													$sql = "SELECT UserID FROM Users WHERE UserName = '".$uname."'";
