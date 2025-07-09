@@ -20,7 +20,7 @@ session_start();
 		$sql = "USE BookStore";
 		$conn->query($sql);
 
-		$sql = "SELECT * FROM book WHERE BookID = '".$_POST['ac']."'";
+		$sql = "SELECT * FROM Book WHERE BookID = '".$_POST['ac']."'";
 		$result = $conn->query($sql);
 
 		while($row = $result->fetch_assoc()){
@@ -64,7 +64,7 @@ session_start();
 	$sql = "USE BookStore";
 	$conn->query($sql);	
 
-	$sql = "SELECT * FROM book";
+	$sql = "SELECT * FROM Book";
 	$result = $conn->query($sql);
 ?>	
 
@@ -106,7 +106,7 @@ echo '<blockquote>';
     echo "</tr>";
     echo "</table>";
 
-	$sql = "SELECT book.BookTitle, book.Image, cart.Price, cart.Quantity, cart.TotalPrice FROM book,cart WHERE book.BookID = cart.BookID;";
+	$sql = "SELECT book.BookTitle, book.Image, cart.Price, cart.Quantity, cart.TotalPrice FROM Book,cart WHERE book.BookID = cart.BookID;";
 	$result = $conn->query($sql);
 
     echo "<table style='width:20%; float:right;'>";
