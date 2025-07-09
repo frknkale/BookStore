@@ -7,12 +7,13 @@
 </blockquote>
 </header>
 <?php
+include 'config.php';
 session_start();
 
 if(isset($_SESSION['id'])){
-	$servername = "{{ mysql_host }}";
-	$username = "{{ mysql_username }}";
-	$password = "{{ mysql_password }}";
+	$servername = $mysql_host;
+	$username = $mysql_username;
+	$password = $mysql_password;
 
 	$conn = new mysqli($servername, $username, $password); 
 
@@ -135,9 +136,9 @@ if(isset($_POST['submitButton'])){
 										}else{
 											$address = $_POST['address'];
 
-											$servername = "{{ mysql_host }}";
-											$username = "{{ mysql_username }}";
-											$password = "{{ mysql_password }}";;
+											$servername = $mysql_host;
+											$username = $mysql_username;
+											$password = $mysql_password;
 
 											$conn = new mysqli($servername, $username, $password); 
 
@@ -305,9 +306,9 @@ if(!isset($_SESSION['id'])){
 }
 
 if(isset($_POST['submitButton'])){
-	$servername = "{{ mysql_host }}";
-	$username = "{{ mysql_username }}";
-	$password = "{{ mysql_password }}";
+	$servername = $mysql_host;
+	$username = $mysql_username;
+	$password = $mysql_password;
 
 	$conn = new mysqli($servername, $username, $password); 
 

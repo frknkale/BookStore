@@ -4,11 +4,12 @@
 <link rel="stylesheet" href="style.css">
 <body>
 <?php
+include 'config.php';
 session_start();
 	if(isset($_POST['ac'])){
-		$servername = "{{ mysql_host }}";
-		$username = "{{ mysql_username }}";
-		$password = "{{ mysql_password }}";
+		$servername = $mysql_host;
+		$username = $mysql_username;
+		$password = $mysql_password;
 
 		$conn = new mysqli($servername, $username, $password);
 
@@ -33,9 +34,9 @@ session_start();
 	}
 
 	if(isset($_POST['delc'])){
-		$servername = "{{ mysql_host }}";
-		$username = "{{ mysql_username }}";
-		$password = "{{ mysql_password }}";
+		$servername = $mysql_host;
+		$username = $mysql_username;
+		$password = $mysql_password;
 
 		$conn = new mysqli($servername, $username, $password);
 
@@ -50,9 +51,9 @@ session_start();
 		$conn->query($sql);
 	}
 
-	$servername = "{{ mysql_host }}";
-	$username = "{{ mysql_username }}";
-	$password = "{{ mysql_password }}";
+	$servername = $mysql_host;
+	$username = $mysql_username;
+	$password = $mysql_password;
 
 	$conn = new mysqli($servername, $username, $password);
 
