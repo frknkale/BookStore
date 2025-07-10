@@ -1,0 +1,33 @@
+pipeline {
+    agent any
+
+    environment {
+        DEPLOY_DIR = "/var/www/bookstore"
+        SERVER_IP = "34.42.118.72"
+        SSH_USER = "ubuntu"
+    }
+
+    stages {
+        stage('Clone Repo') {
+            steps {
+                git url: 'https://github.com/frknkale/BookStore.git', branch: 'main'
+            }
+        }
+
+        stage('Deploy App') {
+            steps {
+                sshagent(['app-server-ssh']) {
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP '
+                        sudo rm -rf $DEPLOY_DIR/bookstore &&
+                        sudo git clone https://github.com/frknkale/BookStore.git $DEPLOY_DIR/bookstore &&
+                        sudo chown -R www-data:www-data $DEPLOY_DIR &&
+                        sudo systemctl restart nginx &&
+                        sudo systemctl restart php8.3-fpm
+                    '
+                    '''
+                }
+            }
+        }
+    }
+}
