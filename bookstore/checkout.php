@@ -157,7 +157,12 @@ if(isset($_POST['submitButton']) && !$orderProcessed) {
         $valid = false;
     } else {
         $ic = test_input($_POST["ic"]);
-    
+		/*
+        if (!preg_match("/^[0-9-]*$/", $ic)) {
+            $icErr = "Please enter a valid IC number";
+            $valid = false;
+        }
+		*/
     }
     
     // Validate email
@@ -166,7 +171,12 @@ if(isset($_POST['submitButton']) && !$orderProcessed) {
         $valid = false;
     } else {
         $email = test_input($_POST["email"]);
-        
+		/*
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $emailErr = "Invalid email format";
+            $valid = false;
+        }
+		*/
     }
     
     // Validate contact
@@ -175,7 +185,12 @@ if(isset($_POST['submitButton']) && !$orderProcessed) {
         $valid = false;
     } else {
         $contact = test_input($_POST["contact"]);
-        
+		/*
+        if (!preg_match("/^[0-9-]*$/", $contact)) {
+            $contactErr = "Please enter a valid phone number";
+            $valid = false;
+        }
+		*/
     }
     
     // Validate gender
