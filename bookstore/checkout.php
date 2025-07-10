@@ -47,12 +47,7 @@ function processLoggedInUserOrder($conn, $userId) {
         $row = $result->fetch_assoc();
         $cID = $row['CustomerID'];
         
-        // Update cart with customer ID
-        $stmt = $conn->prepare("UPDATE Cart SET CustomerID = ? WHERE CustomerID IS NULL");
-        $stmt->bind_param("i", $cID);
-        $stmt->execute();
-        
-        // Create orders from cart
+        // Create orders from cart items belonging to this customer
         $stmt = $conn->prepare("SELECT * FROM Cart WHERE CustomerID = ?");
         $stmt->bind_param("i", $cID);
         $stmt->execute();
@@ -65,7 +60,7 @@ function processLoggedInUserOrder($conn, $userId) {
                 $stmt2->execute();
             }
             
-            // Clear cart
+            // Clear cart for this customer
             $stmt = $conn->prepare("DELETE FROM Cart WHERE CustomerID = ?");
             $stmt->bind_param("i", $cID);
             $stmt->execute();
@@ -221,14 +216,8 @@ if(isset($_POST['submitButton']) && !$orderProcessed) {
         // Get the newly created customer ID
         $cID = $conn->insert_id;
         
-        // Update cart with customer ID
-        $stmt = $conn->prepare("UPDATE Cart SET CustomerID = ? WHERE CustomerID IS NULL");
-        $stmt->bind_param("i", $cID);
-        $stmt->execute();
-        
-        // Create orders from cart
-        $stmt = $conn->prepare("SELECT * FROM Cart WHERE CustomerID = ?");
-        $stmt->bind_param("i", $cID);
+        // Create orders from cart items (guest cart items have CustomerID = NULL)
+        $stmt = $conn->prepare("SELECT * FROM Cart WHERE CustomerID IS NULL");
         $stmt->execute();
         $cartResult = $stmt->get_result();
         
@@ -239,9 +228,8 @@ if(isset($_POST['submitButton']) && !$orderProcessed) {
                 $stmt2->execute();
             }
             
-            // Clear cart
-            $stmt = $conn->prepare("DELETE FROM Cart WHERE CustomerID = ?");
-            $stmt->bind_param("i", $cID);
+            // Clear guest cart
+            $stmt = $conn->prepare("DELETE FROM Cart WHERE CustomerID IS NULL");
             $stmt->execute();
             
             // Display order summary

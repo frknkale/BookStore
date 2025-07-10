@@ -25,6 +25,19 @@ if(isset($_POST['ac'])) {
     $bookID = $_POST['ac'];
     $quantity = intval($_POST['quantity']);
     
+    // Get customer ID if logged in
+    $customerID = null;
+    if(isset($_SESSION['id'])) {
+        $stmt = $conn->prepare("SELECT CustomerID FROM Customer WHERE UserID = ?");
+        $stmt->bind_param("i", $_SESSION['id']);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $customerID = $row['CustomerID'];
+        }
+    }
+    
     // Get book details
     $stmt = $conn->prepare("SELECT * FROM Book WHERE BookID = ?");
     $stmt->bind_param("s", $bookID);
@@ -37,20 +50,35 @@ if(isset($_POST['ac'])) {
         $totalPrice = $price * $quantity;
         
         // Check if item already exists in cart
-        $stmt = $conn->prepare("SELECT * FROM Cart WHERE BookID = ? AND CustomerID IS NULL");
-        $stmt->bind_param("s", $bookID);
+        if($customerID) {
+            $stmt = $conn->prepare("SELECT * FROM Cart WHERE BookID = ? AND CustomerID = ?");
+            $stmt->bind_param("si", $bookID, $customerID);
+        } else {
+            $stmt = $conn->prepare("SELECT * FROM Cart WHERE BookID = ? AND CustomerID IS NULL");
+            $stmt->bind_param("s", $bookID);
+        }
         $stmt->execute();
         $cartResult = $stmt->get_result();
         
         if($cartResult->num_rows > 0) {
             // Update existing cart item
-            $stmt = $conn->prepare("UPDATE Cart SET Quantity = Quantity + ?, TotalPrice = Price * (Quantity + ?) WHERE BookID = ? AND CustomerID IS NULL");
-            $stmt->bind_param("iis", $quantity, $quantity, $bookID);
+            if($customerID) {
+                $stmt = $conn->prepare("UPDATE Cart SET Quantity = Quantity + ?, TotalPrice = Price * (Quantity + ?) WHERE BookID = ? AND CustomerID = ?");
+                $stmt->bind_param("iisi", $quantity, $quantity, $bookID, $customerID);
+            } else {
+                $stmt = $conn->prepare("UPDATE Cart SET Quantity = Quantity + ?, TotalPrice = Price * (Quantity + ?) WHERE BookID = ? AND CustomerID IS NULL");
+                $stmt->bind_param("iis", $quantity, $quantity, $bookID);
+            }
             $stmt->execute();
         } else {
             // Insert new cart item
-            $stmt = $conn->prepare("INSERT INTO Cart(BookID, Quantity, Price, TotalPrice, CustomerID) VALUES(?, ?, ?, ?, NULL)");
-            $stmt->bind_param("sidd", $bookID, $quantity, $price, $totalPrice);
+            if($customerID) {
+                $stmt = $conn->prepare("INSERT INTO Cart(BookID, Quantity, Price, TotalPrice, CustomerID) VALUES(?, ?, ?, ?, ?)");
+                $stmt->bind_param("siddi", $bookID, $quantity, $price, $totalPrice, $customerID);
+            } else {
+                $stmt = $conn->prepare("INSERT INTO Cart(BookID, Quantity, Price, TotalPrice, CustomerID) VALUES(?, ?, ?, ?, NULL)");
+                $stmt->bind_param("sidd", $bookID, $quantity, $price, $totalPrice);
+            }
             $stmt->execute();
         }
     }
@@ -60,7 +88,27 @@ if(isset($_POST['ac'])) {
 // Handle empty cart
 if(isset($_POST['delc'])) {
     $conn = getConnection();
-    $stmt = $conn->prepare("DELETE FROM Cart WHERE CustomerID IS NULL");
+    
+    // Get customer ID if logged in
+    $customerID = null;
+    if(isset($_SESSION['id'])) {
+        $stmt = $conn->prepare("SELECT CustomerID FROM Customer WHERE UserID = ?");
+        $stmt->bind_param("i", $_SESSION['id']);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $customerID = $row['CustomerID'];
+        }
+    }
+    
+    // Delete cart items
+    if($customerID) {
+        $stmt = $conn->prepare("DELETE FROM Cart WHERE CustomerID = ?");
+        $stmt->bind_param("i", $customerID);
+    } else {
+        $stmt = $conn->prepare("DELETE FROM Cart WHERE CustomerID IS NULL");
+    }
     $stmt->execute();
     $conn->close();
 }
@@ -127,7 +175,25 @@ echo "</tr>";
 echo "</table>";
 
 // Display cart
-$stmt = $conn->prepare("SELECT Book.BookTitle, Book.Image, Cart.Price, Cart.Quantity, Cart.TotalPrice FROM Book, Cart WHERE Book.BookID = Cart.BookID AND Cart.CustomerID IS NULL");
+$customerID = null;
+if(isset($_SESSION['id'])) {
+    $stmt = $conn->prepare("SELECT CustomerID FROM Customer WHERE UserID = ?");
+    $stmt->bind_param("i", $_SESSION['id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $customerID = $row['CustomerID'];
+    }
+}
+
+// Get cart items based on customer ID
+if($customerID) {
+    $stmt = $conn->prepare("SELECT Book.BookTitle, Book.Image, Cart.Price, Cart.Quantity, Cart.TotalPrice FROM Book, Cart WHERE Book.BookID = Cart.BookID AND Cart.CustomerID = ?");
+    $stmt->bind_param("i", $customerID);
+} else {
+    $stmt = $conn->prepare("SELECT Book.BookTitle, Book.Image, Cart.Price, Cart.Quantity, Cart.TotalPrice FROM Book, Cart WHERE Book.BookID = Cart.BookID AND Cart.CustomerID IS NULL");
+}
 $stmt->execute();
 $cartResult = $stmt->get_result();
 
