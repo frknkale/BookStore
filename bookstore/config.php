@@ -1,5 +1,5 @@
 <?php
-$mysql_host = "10.10.0.2";
-$mysql_username = "root";
-$mysql_password = "";
+$mysql_host = "10.10.0.4";
+$mysql_username = "devops-admin";
+$mysql_password = "devops-admin-2025";
 ?>
