@@ -10,159 +10,244 @@
 include 'config.php';
 session_start();
 
-if(isset($_SESSION['id'])){
-	$servername = $mysql_host;
-	$username = $mysql_username;
-	$password = $mysql_password;
-
-	$conn = new mysqli($servername, $username, $password); 
-
-	if ($conn->connect_error) {
-	    die("Connection failed: " . $conn->connect_error);
-	} 
-
-	$sql = "USE BookStore";
-	$conn->query($sql);
-
-	$sql = "SELECT CustomerID from Customer WHERE UserID = ".$_SESSION['id']."";
-	$result = $conn->query($sql);
-	while($row = $result->fetch_assoc()){
-		$cID = $row['CustomerID'];
-	}
-
-	$sql = "UPDATE Cart SET CustomerID = ".$cID." WHERE 1";
-	$conn->query($sql);
-
-	$sql = "SELECT * FROM Cart";
-	$result = $conn->query($sql);
-	while($row = $result->fetch_assoc()){
-		$sql = "INSERT INTO `Order`(CustomerID, BookID, DatePurchase, Quantity, TotalPrice, Status) 
-		VALUES(".$row['CustomerID'].", '".$row['BookID']."', CURRENT_TIME, ".$row['Quantity'].", ".$row['TotalPrice'].", 'N')";
-		if ($conn->query($sql) === FALSE) {
-		    echo "Error: " . $conn->error;
-		}
-	}
-
-	$sql = "DELETE FROM Cart";
-	$conn->query($sql);
-
-	$sql = "SELECT Customer.CustomerName, Customer.CustomerIC, Customer.CustomerGender, Customer.CustomerAddress, Customer.CustomerEmail, Customer.CustomerPhone, Book.BookTitle, Book.Price, Book.Image, `Order`.`DatePurchase`, `Order`.`Quantity`, `Order`.`TotalPrice`
-		FROM Customer, Book, `Order`
-		WHERE `Order`.`CustomerID` = Customer.CustomerID AND `Order`.`BookID` = Book.BookID AND `Order`.`CustomerID` = ".$cID."";
-	$result = $conn->query($sql);
-	echo '<div class="container">';
-	echo '<blockquote>';
-?>
-<input class="button" style="float: right;" type="button" name="cancel" value="Continue Shopping" onClick="window.location='index.php';" />
-<?php
-	echo '<h2 style="color: #000;">Order Successful</h2>';
-	echo "<table style='width:100%'>";
-	echo "<tr><th>Order Summary</th>";
-	echo "<th></th></tr>";
-	$row = $result->fetch_assoc();
-	echo "<tr><td>Name: </td><td>".$row['CustomerName']."</td></tr>";
-	echo "<tr><td>No.Number: </td><td>".$row['CustomerIC']."</td></tr>";
-	echo "<tr><td>E-mail: </td><td>".$row['CustomerEmail']."</td></tr>";
-	echo "<tr><td>Mobile Number: </td><td>".$row['CustomerPhone']."</td></tr>";
-	echo "<tr><td>Gender: </td><td>".$row['CustomerGender']."</td></tr>";
-	echo "<tr><td>Address: </td><td>".$row['CustomerAddress']."</td></tr>";
-	echo "<tr><td>Date: </td><td>".$row['DatePurchase']."</td></tr>";
-	echo "</blockquote>";
-
-	$sql = "SELECT Customer.CustomerName, Customer.CustomerIC, Customer.CustomerGender, Customer.CustomerAddress, Customer.CustomerEmail, Customer.CustomerPhone, Book.BookTitle, Book.Price, Book.Image, `Order`.`DatePurchase`, `Order`.`Quantity`, `Order`.`TotalPrice`
-		FROM Customer, Book, `Order`
-		WHERE `Order`.`CustomerID` = Customer.CustomerID AND `Order`.`BookID` = Book.BookID AND `Order`.`CustomerID` = ".$cID."";
-	$result = $conn->query($sql);
-	$total = 0;
-	while($row = $result->fetch_assoc()){
-		echo "<tr><td style='border-top: 2px solid #ccc;'>";
-		echo '<img src="'.$row["Image"].'" width="20%"></td><td style="border-top: 2px solid #ccc;">';
-    	echo $row['BookTitle']."<br>RM".$row['Price']."<br>";
-    	echo "Quantity: ".$row['Quantity']."<br>";
-    	echo "</td></tr>";
-    	$total += $row['TotalPrice'];
-	}
-	echo "<tr><td style='background-color: #ccc;'></td><td style='text-align: right;background-color: #ccc;'>Total Price: <b>RM".$total."</b></td></tr>";
-	echo "</table>";
-	echo "</div>";
-
-	$sql = "UPDATE `Order` SET Status = 'y' WHERE CustomerID = ".$cID."";
-	$conn->query($sql);
-}
-
+// Initialize variables
 $nameErr = $emailErr = $genderErr = $addressErr = $icErr = $contactErr = "";
 $name = $email = $gender = $address = $ic = $contact = "";
-$cID;
+$cID = null;
+$orderProcessed = false;
 
-if(isset($_POST['submitButton'])){
-	if (empty($_POST["name"])) {
-		$nameErr = "Please enter your name";
-	}else{
-		$name = $_POST['name'];
-		if (empty($_POST["ic"])){
-			$icErr = "Please enter your IC number";
-		}else{
-			$ic = $_POST['ic'];
-			if (empty($_POST["email"])){
-				$emailErr = "Please enter your email address";
-			}else{
-				$email = $_POST['email'];
-				if (empty($_POST["contact"])){
-					$contactErr = "Please enter your phone number";
-				}else{
-					$contact = $_POST['contact'];
-					if (empty($_POST["gender"])){
-						$genderErr = "Gender is required!";
-					}else{
-						$gender = $_POST['gender'];
-						if (empty($_POST["address"])){
-							$addressErr = "Please enter your address";
-						}else{
-							$address = $_POST['address'];
+// Function to sanitize input
+function test_input($data) {
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    return $data;
+}
 
-							$servername = $mysql_host;
-							$username = $mysql_username;
-							$password = $mysql_password;
+// Function to create database connection
+function getConnection() {
+    global $mysql_host, $mysql_username, $mysql_password;
+    $conn = new mysqli($mysql_host, $mysql_username, $mysql_password);
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+    $conn->query("USE BookStore");
+    return $conn;
+}
 
-							$conn = new mysqli($servername, $username, $password); 
+// Function to process order for logged-in user
+function processLoggedInUserOrder($conn, $userId) {
+    // Get customer ID from session user ID
+    $stmt = $conn->prepare("SELECT CustomerID FROM Customer WHERE UserID = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $cID = $row['CustomerID'];
+        
+        // Update cart with customer ID
+        $stmt = $conn->prepare("UPDATE Cart SET CustomerID = ? WHERE CustomerID IS NULL");
+        $stmt->bind_param("i", $cID);
+        $stmt->execute();
+        
+        // Create orders from cart
+        $stmt = $conn->prepare("SELECT * FROM Cart WHERE CustomerID = ?");
+        $stmt->bind_param("i", $cID);
+        $stmt->execute();
+        $cartResult = $stmt->get_result();
+        
+        if ($cartResult->num_rows > 0) {
+            while($cartRow = $cartResult->fetch_assoc()) {
+                $stmt2 = $conn->prepare("INSERT INTO `Order`(CustomerID, BookID, DatePurchase, Quantity, TotalPrice, Status) VALUES(?, ?, NOW(), ?, ?, 'N')");
+                $stmt2->bind_param("isid", $cID, $cartRow['BookID'], $cartRow['Quantity'], $cartRow['TotalPrice']);
+                $stmt2->execute();
+            }
+            
+            // Clear cart
+            $stmt = $conn->prepare("DELETE FROM Cart WHERE CustomerID = ?");
+            $stmt->bind_param("i", $cID);
+            $stmt->execute();
+            
+            return $cID;
+        }
+    }
+    return null;
+}
 
-							if ($conn->connect_error) {
-							    die("Connection failed: " . $conn->connect_error);
-							} 
+// Function to display order summary
+function displayOrderSummary($conn, $cID) {
+    $stmt = $conn->prepare("SELECT Customer.CustomerName, Customer.CustomerIC, Customer.CustomerGender, Customer.CustomerAddress, Customer.CustomerEmail, Customer.CustomerPhone, Book.BookTitle, Book.Price, Book.Image, `Order`.DatePurchase, `Order`.Quantity, `Order`.TotalPrice FROM Customer, Book, `Order` WHERE `Order`.CustomerID = Customer.CustomerID AND `Order`.BookID = Book.BookID AND `Order`.Status = 'N' AND `Order`.CustomerID = ?");
+    $stmt->bind_param("i", $cID);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        echo '<div class="container">';
+        echo '<blockquote>';
+        echo '<input class="button" style="float: right;" type="button" name="cancel" value="Continue Shopping" onClick="window.location=\'index.php\';" />';
+        echo '<h2 style="color: #000;">Order Successful</h2>';
+        echo "<table style='width:100%'>";
+        echo "<tr><th>Order Summary</th><th></th></tr>";
+        
+        $row = $result->fetch_assoc();
+        echo "<tr><td>Name: </td><td>".$row['CustomerName']."</td></tr>";
+        echo "<tr><td>IC Number: </td><td>".$row['CustomerIC']."</td></tr>";
+        echo "<tr><td>E-mail: </td><td>".$row['CustomerEmail']."</td></tr>";
+        echo "<tr><td>Mobile Number: </td><td>".$row['CustomerPhone']."</td></tr>";
+        echo "<tr><td>Gender: </td><td>".$row['CustomerGender']."</td></tr>";
+        echo "<tr><td>Address: </td><td>".$row['CustomerAddress']."</td></tr>";
+        echo "<tr><td>Date: </td><td>".$row['DatePurchase']."</td></tr>";
+        
+        // Reset result pointer
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        $total = 0;
+        while($row = $result->fetch_assoc()) {
+            echo "<tr><td style='border-top: 2px solid #ccc;'>";
+            echo '<img src="'.$row["Image"].'" width="20%"></td><td style="border-top: 2px solid #ccc;">';
+            echo $row['BookTitle']."<br>RM".$row['Price']."<br>";
+            echo "Quantity: ".$row['Quantity']."<br>";
+            echo "</td></tr>";
+            $total += $row['TotalPrice'];
+        }
+        echo "<tr><td style='background-color: #ccc;'></td><td style='text-align: right;background-color: #ccc;'>Total Price: <b>RM".$total."</b></td></tr>";
+        echo "</table>";
+        echo "</div>";
+        
+        // Update order status to completed
+        $stmt = $conn->prepare("UPDATE `Order` SET Status = 'Y' WHERE CustomerID = ?");
+        $stmt->bind_param("i", $cID);
+        $stmt->execute();
+    }
+}
 
-							$sql = "USE BookStore";
-							$conn->query($sql);
+// If user is logged in, process order immediately
+if(isset($_SESSION['id'])) {
+    $conn = getConnection();
+    $cID = processLoggedInUserOrder($conn, $_SESSION['id']);
+    if ($cID) {
+        displayOrderSummary($conn, $cID);
+        $orderProcessed = true;
+    }
+    $conn->close();
+}
 
-							$sql = "INSERT INTO Customer(CustomerName, CustomerPhone, CustomerIC, CustomerEmail, CustomerAddress, CustomerGender) 
-							VALUES('".$name."', '".$contact."', '".$ic."', '".$email."', '".$address."', '".$gender."')";
-							$conn->query($sql);
-
-							$sql = "SELECT CustomerID from Customer WHERE CustomerName = '".$name."' AND CustomerIC = '".$ic."'";
-							$result = $conn->query($sql);
-							while($row = $result->fetch_assoc()){
-								$cID = $row['CustomerID'];
-							}
-
-							$sql = "UPDATE Cart SET CustomerID = ".$cID." WHERE 1";
-							$conn->query($sql);
-
-							$sql = "SELECT * FROM Cart";
-							$result = $conn->query($sql);
-							while($row = $result->fetch_assoc()){
-								$sql = "INSERT INTO `Order`(CustomerID, BookID, DatePurchase, Quantity, TotalPrice, Status) 
-								VALUES(".$row['CustomerID'].", '".$row['BookID']."', CURRENT_TIME, ".$row['Quantity'].", ".$row['TotalPrice'].", 'N')";
-								$conn->query($sql);
-							}
-							$sql = "DELETE FROM Cart";
-							$conn->query($sql);
-						}
-					}
-				}
-			}
-		}
-	}
+// Process form submission for guest checkout
+if(isset($_POST['submitButton']) && !$orderProcessed) {
+    $valid = true;
+    
+    // Validate name
+    if (empty($_POST["name"])) {
+        $nameErr = "Please enter your name";
+        $valid = false;
+    } else {
+        $name = test_input($_POST["name"]);
+        if (!preg_match("/^[a-zA-Z ]*$/", $name)) {
+            $nameErr = "Only letters and white space allowed";
+            $valid = false;
+        }
+    }
+    
+    // Validate IC
+    if (empty($_POST["ic"])) {
+        $icErr = "Please enter your IC number";
+        $valid = false;
+    } else {
+        $ic = test_input($_POST["ic"]);
+        if (!preg_match("/^[0-9-]*$/", $ic)) {
+            $icErr = "Please enter a valid IC number";
+            $valid = false;
+        }
+    }
+    
+    // Validate email
+    if (empty($_POST["email"])) {
+        $emailErr = "Please enter your email address";
+        $valid = false;
+    } else {
+        $email = test_input($_POST["email"]);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $emailErr = "Invalid email format";
+            $valid = false;
+        }
+    }
+    
+    // Validate contact
+    if (empty($_POST["contact"])) {
+        $contactErr = "Please enter your phone number";
+        $valid = false;
+    } else {
+        $contact = test_input($_POST["contact"]);
+        if (!preg_match("/^[0-9-]*$/", $contact)) {
+            $contactErr = "Please enter a valid phone number";
+            $valid = false;
+        }
+    }
+    
+    // Validate gender
+    if (empty($_POST["gender"])) {
+        $genderErr = "Gender is required";
+        $valid = false;
+    } else {
+        $gender = test_input($_POST["gender"]);
+    }
+    
+    // Validate address
+    if (empty($_POST["address"])) {
+        $addressErr = "Please enter your address";
+        $valid = false;
+    } else {
+        $address = test_input($_POST["address"]);
+    }
+    
+    // If all validations pass, process the order
+    if ($valid) {
+        $conn = getConnection();
+        
+        // Insert customer
+        $stmt = $conn->prepare("INSERT INTO Customer(CustomerName, CustomerPhone, CustomerIC, CustomerEmail, CustomerAddress, CustomerGender) VALUES(?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssss", $name, $contact, $ic, $email, $address, $gender);
+        $stmt->execute();
+        
+        // Get the newly created customer ID
+        $cID = $conn->insert_id;
+        
+        // Update cart with customer ID
+        $stmt = $conn->prepare("UPDATE Cart SET CustomerID = ? WHERE CustomerID IS NULL");
+        $stmt->bind_param("i", $cID);
+        $stmt->execute();
+        
+        // Create orders from cart
+        $stmt = $conn->prepare("SELECT * FROM Cart WHERE CustomerID = ?");
+        $stmt->bind_param("i", $cID);
+        $stmt->execute();
+        $cartResult = $stmt->get_result();
+        
+        if ($cartResult->num_rows > 0) {
+            while($cartRow = $cartResult->fetch_assoc()) {
+                $stmt2 = $conn->prepare("INSERT INTO `Order`(CustomerID, BookID, DatePurchase, Quantity, TotalPrice, Status) VALUES(?, ?, NOW(), ?, ?, 'N')");
+                $stmt2->bind_param("isid", $cID, $cartRow['BookID'], $cartRow['Quantity'], $cartRow['TotalPrice']);
+                $stmt2->execute();
+            }
+            
+            // Clear cart
+            $stmt = $conn->prepare("DELETE FROM Cart WHERE CustomerID = ?");
+            $stmt->bind_param("i", $cID);
+            $stmt->execute();
+            
+            // Display order summary
+            displayOrderSummary($conn, $cID);
+            $orderProcessed = true;
+        }
+        
+        $conn->close();
+    }
 }
 ?>
+
 <style> 
 header {
 	background-color: rgb(0,51,102);
@@ -198,56 +283,91 @@ input[type=text] {
     border: 2px solid #ccc;
     transition: 0.5s;
     outline: none;
-    font-size: 1.2em;
-	width: 60%;
 }
 input[type=text]:focus {
-    border: 2px solid #6699ff;
+    border: 2px solid rgb(0,51,102);
 }
-input[type=button] {
-	width: 100%;
-}
-button {
-	width: 100%;
-}
-button:hover{
-	color: #fff;
-	background-color: rgb(0,51,102);
-	border: none;
-	border-radius: 8px;
-}
-input[type=button] {
-	background-color: rgb(0,51,102);
-    color: #fff;
-    border-radius: 8px;
-}
-input[type=button]:hover{
-	background-color: rgb(0,102,204);
-}
-input[type="radio"] {
-	width: 20px;
-	height: 20px;
-	cursor: pointer;
-}
-input[type="radio"]:focus {
+textarea {
 	outline: none;
+	border: 2px solid #ccc;
 }
-h2 {
-	text-align: center;
-	color: rgb(0,51,102);
+textarea:focus {
+	border: 2px solid rgb(0,51,102);
 }
-blockquote {
-	margin: 2%;
-	padding: 3%;
+.button{
+    background-color: rgb(0,51,102);
+    border: none;
+    border-radius: 20px;
+    text-align: center;
+    transition-duration: 0.5s; 
+    padding: 8px 30px;
+    cursor: pointer;
+    color: #fff;
 }
-table, th, td {
-	border: 1px solid black;
-	border-collapse: collapse;
+.button:hover {
+    background-color: rgb(102,255,255);
+    color: #000;
+}
+table {
+    border-collapse: collapse;
+    width: 60%;
+    float: right;
 }
 th, td {
-	padding: 10px;
-	text-align: left;
+    text-align: left;
+    padding: 8px;
+}
+tr{background-color: #fff;}
+
+th {
+    background-color: rgb(0,51,102);
+    color: white;
+}
+.container {
+	width: 50%;
+    border-radius: 5px;
+    background-color: #f2f2f2;
+    padding: 20px;
+    margin: 0 auto;
+}
+.error {
+    color: red; 
+    font-size: 0.8em;
 }
 </style>
+
+<blockquote>
+<?php
+// Show checkout form only if order hasn't been processed and user is not logged in
+if(!$orderProcessed && !isset($_SESSION['id'])) {
+	echo "<form method='post' action=''>";
+
+	echo 'Name:<br><input type="text" name="name" placeholder="Full Name" value="'.$name.'">';
+	echo '<span class="error">'.$nameErr.'</span><br><br>';
+
+	echo 'IC Number:<br><input type="text" name="ic" placeholder="xxxxxx-xx-xxxx" value="'.$ic.'">';
+	echo '<span class="error">'.$icErr.'</span><br><br>';
+
+	echo 'E-mail:<br><input type="text" name="email" placeholder="example@email.com" value="'.$email.'">';
+	echo '<span class="error">'.$emailErr.'</span><br><br>';
+
+	echo 'Mobile Number:<br><input type="text" name="contact" placeholder="012-3456789" value="'.$contact.'">';
+	echo '<span class="error">'.$contactErr.'</span><br><br>';
+
+	echo '<label>Gender:</label><br>';
+	echo '<input type="radio" name="gender" value="Male"'.($gender == "Male" ? " checked" : "").'>Male ';
+	echo '<input type="radio" name="gender" value="Female"'.($gender == "Female" ? " checked" : "").'>Female<br>';
+	echo '<span class="error">'.$genderErr.'</span><br><br>';
+
+	echo '<label>Address:</label><br>';
+	echo '<textarea name="address" cols="30" rows="5" placeholder="Address">'.$address.'</textarea><br>';
+	echo '<span class="error">'.$addressErr.'</span><br><br>';
+
+	echo '<input class="button" type="button" name="cancel" value="Cancel" onClick="window.location=\'index.php\';" />';
+	echo '<input class="button" type="submit" name="submitButton" value="CHECKOUT">';
+	echo '</form><br><br>';
+}
+?>
+</blockquote>
 </body>
 </html>
