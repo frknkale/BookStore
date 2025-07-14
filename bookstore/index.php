@@ -8,7 +8,7 @@ include 'config.php';
 session_start();
 
 // Function to create database connection
-function getConnectionnnnn() {
+function getConnection() {
     global $mysql_host, $mysql_username, $mysql_password;
     $conn = new mysqli($mysql_host, $mysql_username, $mysql_password);
     if ($conn->connect_error) {
