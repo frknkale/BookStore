@@ -10,7 +10,7 @@ session_start();
 // Function to create database connection
 function getConnection() {
     global $mysql_host, $mysql_username, $mysql_password;
-    $conn = new mysqli($mysql_host, $mysql_username, $mysql_password);
+    $conn = new mysqli("10.10.0.4", $mysql_username, $mysql_password);
     if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);
     }
