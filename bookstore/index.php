@@ -1,4 +1,4 @@
-<htm>
+<html>
 <meta http-equiv="Content-Type" content="text/html; charset=utf8"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="style.css">
@@ -8,7 +8,7 @@ include 'config.php';
 session_start();
 
 // Function to create database connection
-function getConnection() {
+function getConnectionn() {
     global $mysql_host, $mysql_username, $mysql_password;
     $conn = new mysqli($mysql_host, $mysql_username, $mysql_password);
     if ($conn->connect_error) {
