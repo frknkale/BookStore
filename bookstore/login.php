@@ -10,7 +10,7 @@
 <div class="container">
 <center><h1>Login</h1></center>
 <form action="checklogin.php" method="post">
-    Username:<br><input type="text" name="username"/>
+    Usernamee:<br><input type="text" name="username"/>
     <br><br>
     Password:<br><input type="password" name="pwd" />
     <br><br>
