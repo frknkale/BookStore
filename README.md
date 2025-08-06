@@ -1,12 +1,12 @@
 # BookStore
 
-A simple PHP-based Book Store application built with plain PHP and MySQL.  
+A simple PHP-based Book Store application built with plain PHP and MySQL. (Used in `automated-infra-pipeline` project)
 
 ---
 
 ## Features
 
-- User Registration & Login
+- User registration & login
 - View available books/products
 - Add books to cart
 - View and update cart contents
